@@ -36,7 +36,7 @@ Our custom shell was developed and tested on Ubuntu 14.04 LTS via Vagrant in Vir
 ##Installation
 Clone the repository. Compile the ".c" files. Run executable.
 
-$ git clone https://github.com/aDENTinTIME/simple_shell.git
+$ git clone https://github.com/Precious-B/simple_shell.git
 
 ##Compilation
 Enter the following command to compile: $ gcc -Wall -Werror -Wextra -pedantic *.c -o hsh
@@ -68,4 +68,4 @@ $
 
 ##Authors
 [Bahakae Precious Solomon](https://github.com/Precious-B)
-[Teddy Omondi](https://github.com/
+[Teddy Omondi](https://github.com/Teddy0328
