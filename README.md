@@ -81,5 +81,5 @@ $
 *************************************************************
 
 ## Authors
-[Bahakae Precious Solomon](https://github.com/Precious-B)
+[Bahakae Precious Solomon](https://github.com/Precious-B) and
 [Teddy Omondi](https://github.com/Teddy0328)
