@@ -23,3 +23,16 @@ void env_builtin(void)
 {
 
 }
+
+/**
+ * exiter - This program frees the buffer and
+ * exits the program
+ * @cmd: a vector array of command line arguments
+ * @b: line_buffer created in main
+ *
+ * Return: void
+ */
+void exiter(char **cmd, char *b)
+{
+
+}
