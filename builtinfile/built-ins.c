@@ -1,192 +1,208 @@
-#include "shell.h"
-int (*get_builtin(char *command))(char **args, char **front);
-int shellby_exit(char **args, char **front);
-int shellby_cd(char **args, char __attribute__((__unused__)) **front);
-int shellby_help(char **args, char __attribute__((__unused__)) **front);
+#include "builtin.h"
 
 /**
- * get_builtin - Matches a command with a corresponding
- *               shellby builtin function.
- * @command: The command to match.
+ * exit_sh - exit shell
+ * @sev: struct contain shell vars
  *
- * Return: A function pointer to the corresponding builtin.
+ * Description: Func to exit
+ * Return: void
  */
-int (*get_builtin(char *command))(char **args, char **front)
+void exit_sh(sev_t *sev)
 {
-	builtin_t funcs[] = {
-		{ "exit", shellby_exit },
-		{ "env", shellby_env },
-		{ "setenv", shellby_setenv },
-		{ "unsetenv", shellby_unsetenv },
-		{ "cd", shellby_cd },
-		{ "alias", shellby_alias },
-		{ "help", shellby_help },
-		{ NULL, NULL }
-	};
-	int i;
+  char **av = sev->p_input;
+  char *signal = "0";
+  unsigned long siglong = 0, i, max = (long) INT_MAX;
+  int sgint;
 
-	for (i = 0; funcs[i].name; i++)
+  if (av[1])
+    signal = av[1];
+
+  for (i = 0; signal[i]; i++)
+    {
+      if (signal[i] == '-' || (signal[i] < '0' || signal[i] > '9'))
 	{
-		if (_strcmp(funcs[i].name, command) == 0)
-			break;
+	  siglong = -1;
+	  break;
 	}
-	return (funcs[i].f);
+
+      siglong = (siglong * 10) + signal[i] - '0';
+      if (siglong > max)
+	{
+	  siglong = -1;
+	  break;
+	}
+    }
+
+  sgint = (int) siglong;
+  if (sgint >= 0 && sgint <= INT_MAX)
+    {
+      sigint &= BYTE;
+      sev->error = sgint;
+      if (!av[1])
+	sev->error = sev->olderror;
+      sev->skywalker = 0;
+    }
+  else
+    {
+      sigint = 2;
+      sev->error = sigint;
+      sev->errmsg = illegalnum(sev);
+      sev->skywalker = 1;
+    }
 }
 
 /**
- * shellby_exit - Causes normal process termination
- *                for the shellby shell.
- * @args: An array of arguments containing the exit value.
- * @front: A double pointer to the beginning of args.
+ * _printenv - print env vars
+ * @sev: struct contain shell vars
  *
- * Return: If there are no arguments - -3.
- *         If the given exit value is invalid - 2.
- *         O/w - exits with the given status value.
- *
- * Description: Upon returning -3, the program exits back in the main function.
+ * Description: Func prints all env vars
+ * Return: void
  */
-int shellby_exit(char **args, char **front)
+void _printenv(sev_t *sev)
 {
-	int i, len_of_int = 10;
-	unsigned int num = 0, max = 1 << (sizeof(int) * 8 - 1);
+  list_t *ev = reverse_list(&(sev->env));
+  char *st = NULL;
 
-	if (args[0])
+  if (sev->p_input[1] != NULL)
+    {
+      sev->errmsg = invalidenv(sev);
+      sev->error = 127;
+      reverse_list(&(sev->env));
+      return;
+    }
+  if (ev)
+    {
+      for (; ev; ev = ev->next)
 	{
-		if (args[0][0] == '+')
-		{
-			i = 1;
-			len_of_int++;
-		}
-		for (; args[0][i]; i++)
-		{
-			if (i <= len_of_int && args[0][i] >= '0' && args[0][i] <= '9')
-				num = (num * 10) + (args[0][i] - '0');
-			else
-				return (create_error(--args, 2));
-		}
+	  st = ev->value;
+	  write(STDOUT_FILENO, st, _strlen(st));
+	  write(STDOUT_FILENO, "\n", 1);
 	}
-	else
-	{
-		return (-3);
-	}
-	if (num > max - 1)
-		return (create_error(--args, 2));
-	args -= 1;
-	free_args(args, front);
-	free_env();
-	free_alias_list(aliases);
-	exit(num);
+    }
+
+  reverse_list(&(sev->env));
 }
 
 /**
- * shellby_cd - Changes the current directory of the shellby process.
- * @args: An array of arguments.
- * @front: A double pointer to the beginning of args.
+ * _setenv - set environment variable
+ * @sev: struct of shell variable
  *
- * Return: If the given string is not a directory - 2.
- *         If an error occurs - -1.
- *         Otherwise - 0.
+ * Description: Function checks to see if environment variable exists. If
+ * exists, the value will be overwritten with new value passed in by user. If
+ * it does not exist, a new variable will be created.
+ * Return: void
  */
-int shellby_cd(char **args, char __attribute__((__unused__)) **front)
+void _setenv(sev_t *sev)
 {
-	char **dir_info, *new_line = "\n";
-	char *oldpwd = NULL, *pwd = NULL;
-	struct stat dir;
+  list_t **mt = &(sev->mem);
+  char **av = sev->p_input;
+  char *variabl, *value, *new;
 
-	oldpwd = getcwd(oldpwd, 0);
-	if (!oldpwd)
-		return (-1);
+  variabl = av[1];
+  value = av[2];
 
-	if (args[0])
-	{
-		if (*(args[0]) == '-' || _strcmp(args[0], "--") == 0)
-		{
-			if ((args[0][1] == '-' && args[0][2] == '\0') ||
-					args[0][1] == '\0')
-			{
-				if (_getenv("OLDPWD") != NULL)
-					(chdir(*_getenv("OLDPWD") + 7));
-			}
-			else
-			{
-				free(oldpwd);
-				return (create_error(args, 2));
-			}
-		}
-		else
-		{
-			if (stat(args[0], &dir) == 0 && S_ISDIR(dir.st_mode)
-					&& ((dir.st_mode & S_IXUSR) != 0))
-				chdir(args[0]);
-			else
-			{
-				free(oldpwd);
-				return (create_error(args, 2));
-			}
-		}
-	}
-	else
-	{
-		if (_getenv("HOME") != NULL)
-			chdir(*(_getenv("HOME")) + 5);
-	}
+  if (variabl && value)
+    {
+      new = _strcat(variabl, "=", mt);
+      new = _strcat(new, value, mt);
 
-	pwd = getcwd(pwd, 0);
-	if (!pwd)
-		return (-1);
-
-	dir_info = malloc(sizeof(char *) * 2);
-	if (!dir_info)
-		return (-1);
-
-	dir_info[0] = "OLDPWD";
-	dir_info[1] = oldpwd;
-	if (shellby_setenv(dir_info, dir_info) == -1)
-		return (-1);
-
-	dir_info[0] = "PWD";
-	dir_info[1] = pwd;
-	if (shellby_setenv(dir_info, dir_info) == -1)
-		return (-1);
-	if (args[0] && args[0][0] == '-' && args[0][1] != '-')
-	{
-		write(STDOUT_FILENO, pwd, _strlen(pwd));
-		write(STDOUT_FILENO, new_line, 1);
-	}
-	free(oldpwd);
-	free(pwd);
-	free(dir_info);
-	return (0);
+      if (!_setenv_helper(sev, variabl, value))
+	add_node(&(sev->env), NULL, _strdup(new, mt));
+    }
+  else
+    {
+      sev->errmsg = "Usage: setenv VARIABLE VALUE\n";
+      sev->error = 1;
+    }
 }
 
 /**
- * shellby_help - Displays information about shellby builtin commands.
- * @args: An array of arguments.
- * @front: A pointer to the beginning of args.
+ * _unsetenv - rmv env var
+ * @sev: struct of shell vars
  *
- * Return: If an error occurs - -1.
- *         Otherwise - 0.
+ * Description: Func checks to see if env var exists. If it
+ * exists, it will be rmv from the list of env vars.
+ * Return: void
  */
-int shellby_help(char **args, char __attribute__((__unused__)) **front)
+void _unsetenv(sev_t *sev)
 {
-	if (!args[0])
-		help_all();
-	else if (_strcmp(args[0], "alias") == 0)
-		help_alias();
-	else if (_strcmp(args[0], "cd") == 0)
-		help_cd();
-	else if (_strcmp(args[0], "exit") == 0)
-		help_exit();
-	else if (_strcmp(args[0], "env") == 0)
-		help_env();
-	else if (_strcmp(args[0], "setenv") == 0)
-		help_setenv();
-	else if (_strcmp(args[0], "unsetenv") == 0)
-		help_unsetenv();
-	else if (_strcmp(args[0], "help") == 0)
-		help_help();
-	else
-		write(STDERR_FILENO, name, _strlen(name));
+  list_t *ev = sev->env;
+  unsigned int i = 0, index_count = 0, found = 0;
+  char **av = sev->p_input;
+  char *variabl, *envar;
 
-	return (0);
+  variabl = av[1];
+
+  if (variabl)
+    {
+      for (; ev; ev = ev->next)
+	{
+	  envar = ev->value;
+	  for (i = 0; i < _strlen(variabl); i++)
+	    {
+	      if (variabl[i] != envar[i])
+		break;
+	    }
+	  if (!variabl[i])
+	    {
+	      found = 1;
+	      break;
+	    }
+	  index_count++;
+	}
+
+      if (found)
+	delete_node_at_index(&(sev->env), index_count);
+      else
+	{
+	  sev->errmsg = "Unable to find VARIABLE\n";
+	  sev->error = 1;
+	}
+    }
+  else
+    {
+      sev->errmsg = "Usage: unsetenv VARIABLE\n";
+      sev->error = 1;
+    }
+}
+
+/**
+ * check_builtin - call builtin func
+ * @sev: struct contain shell vars
+ *
+ * Description: Func checks if builtin func exists. If it does,
+ * builtin func will be exec.
+ * Return: 1 in success; 0 in fail
+ */
+int check_builtin(sev_t *sev)
+{
+  int i = 0;
+  char *cmd = NULL;
+  char **av = sev->p_input;
+
+  built_t funclist[] = {
+    {"exit", exit_sh},
+    {"env", _printenv},
+    {"setenv", _setenv},
+    {"unsetenv", _unsetenv},
+    {"cd", change_dir},
+    {"history", history},
+    {"alias", alias},
+    {"help", _help},
+    {NULL, NULL}
+  };
+
+  if (av && *av)
+    {
+      cmd = av[0];
+      for (i = 0; funclist[i].funcname; i++)
+	{
+	  if (!_strcmp(cmd, funclist[i].funcname))
+	    {
+	      funclist[i].func(sev);
+	      return (1);
+	    }
+	}
+    }
+  return (0);
 }
