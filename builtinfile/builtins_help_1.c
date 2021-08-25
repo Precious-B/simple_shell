@@ -1,4 +1,4 @@
-#include "../shell.h"
+#include "shell.h"
 
 /**
  * change_dir - change directory
