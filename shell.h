@@ -1,84 +1,51 @@
-#ifndef SHELL_H
-#define SHELL_H
-
-/*libraries*/
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/stat.h>
+#ifndef _SHELL_H_
+#define _SHELL_H_
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/wait.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
-#include <stdbool.h>
-
-/*string_handlers*/
-char *_strdup(char *str);
-char *_strchr(char *str, int chr);
-int _strlen(const char *str);
+#include <sys/wait.h>
+#include <unistd.h>
+#include "./stringfile/string.h"
+#include "linklist.h"
+#include "./memofile/memo.h"
+#include "shellvar.h"
+#include "./builtinfile/builtin.h"
+#include "./errorfile/error.h"
+#include "./shellhelperfile/shellhelper.h"
+#include "log.h"
+#define SPACE " "
+#define EQUAL "="
+#define COLON ":"
+#define BSLASH "\\"
+#define FSLASH "/"
+#define BUF_SIZE 4096
+#define PS1 write(STDOUT_FILENO, "MANDALORIAN$ ", 4)
+#define PS2 write(STDOUT_FILENO, "\nMANDALORIAN$ ", 5)
+#define NEWLINE write(STDOUT_FILENO, "\n", 1)
+#define DELIM " \t"
+/* _getline.c */
+ssize_t _getline(char **lineptr, size_t *n, int fd, list_t **mt);
+void reset_buffer(char *buffer, ssize_t buf_size);
+void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size);
+char *_strdup(char *str, list_t **mt);
+unsigned int _strspn(char *s, char *accept);
+char *_strpbrk(char *s, char *accept);
+char *_strtok(char *s, const char *delim);
+unsigned int _strlen(char *s);
+/* string02.c */
 int _strcmp(char *s1, char *s2);
-int _strncmp(const char *first, const char *second, int n);
-
-/*command_handler*/
-char *_getpath(void);
-char **token_maker(char *str);
-void exec_cmd(char *c, char **cmd);
-char *pathappend(char *path, char *cmd);
-char *try_paths(char **p, char *cmd);
-
-/*built-ins*/
-void env_builtin(void);
-void exiter(char **cmd, char *b);
-int is_builtin(char **cmd, char *b);
-void prompt_printer(void);
-void sighandle(int n);
-
-/*helper function*/
-int check_type(char **cmd, char *b);
-void free_cmds(char **m);
-
-/*environment variables*/
-extern __sighandler_t signal(int __sig, __sighandler_t __handler);
-extern char **environ;
-
-/**
- * struct builtins - Handles builtins
- * @env: First member
- * @exit: Second member
- *
- * Description: builtin commands
- */
-struct builtins
-{
-  char *env;
-  char *exit;
-
-} builtins;
-
-/**
- * struct info - Status info struct
- * @final_exit: First member
- * @ln_count: Second member
- *
- * Description: Used in error handling
- */
-struct info
-{
-  int final_exit;
-  int ln_count;
-} info;
-
-/**
- * struct flags - Holds flags
- * @interactive: First member
- *
- * Description: used to handle
- * boolean switches
- */
-struct flags
-{
-  bool interactive;
-} flags;
-
-#endif /* SHELL_H */
+int _atoi(char *s);
+char *_strcat(char *s1, char *s2, list_t **mt);
+char *_itoa(ssize_t num, list_t **mt);
+char *reverse_str(char *s);
+/* string03.c */
+char *_strchr(char *s, char c);
+void _chartostr(char *s, char c);
+#endif /* _SHELL_H_ */
