@@ -1,88 +1,76 @@
 #ifndef SHELL_H
 #define SHELL_H
 
-/*libraries*/
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/stat.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/wait.h>
 #include <sys/types.h>
-#include <stdbool.h>
-#include <dirent.h>
-#include <signal.h>
-#include <sys/resource.h>
-#include <sys/time.h>
+#include <sys/wait.h>
 
-/*string_handlers*/
-char *_strdup(char *str);
-char *_strchr(char *str, int chr);
-int _strlen(const char *str);
-int _strcmp(char *s1, char *s2);
-int _strncmp(const char *first, const char *second, int n);
-
-/*command_handler*/
-char *_getpath(void);
-char **token_maker(char *str);
-void exec_cmd(char *c, char **cmd);
-char *pathappend(char *path, char *cmd);
-char *try_paths(char **p, char *cmd);
-
-/*built-ins*/
-void env_builtin(void);
-void exiter(char **cmd, char *b);
-int is_builtin(char **cmd, char *b);
-void prompt_printer(void);
-void sighandle(int n);
-
-/*helper function*/
-int check_type(char **cmd, char *b);
-void free_cmds(char **m);
-
-/*environment variables*/
-extern __sighandler_t signal(int __sig, __sighandler_t __handler);
+#define BUFFER 1024
+#define TRUE 1
+#define PROMPT "$ "
+/* error strings */
+#define ERR_MALLOC "Unable to malloc space\n"
+#define ERR_FORK "Unable to fork and create child process\n"
+#define ERR_PATH "No such file or directory\n"
 extern char **environ;
 
 /**
- * struct builtins - Handles builtins
- * @env: First member
- * @exit: Second member
+ * struct list_s - linked list of variables
+ * @value: value
+ * @next: pointer to next node
  *
- * Description: builtin commands
- */
-struct builtins
+ * Description: generic linked list struct for variables.
+ **/
+typedef struct list_s
 {
-  char *env;
-  char *exit;
-
-} builtins;
-
-/**
- * struct info - Status info struct
- * @final_exit: First member
- * @ln_count: Second member
- *
- * Description: Used in error handling
- */
-struct info
-{
-  int final_exit;
-  int ln_count;
-} info;
+  char *value;
+  struct list_s *next;
+} list_s;
 
 /**
- * struct flags - Holds flags
- * @interactive: First member
+ * struct built_s - linked list of builtins
+ * @name: name of builtin
+ * @p: pointer to function
  *
- * Description: used to handle
- * boolean switches
- */
-struct flags
+ * Description: struct for builtin functions.
+ **/
+typedef struct built_s
 {
-  bool interactive;
-} flags;
+  char *name;
+  int (*p)(void);
+} built_s;
+
+void prompt(int fd, struct stat buf);
+char *_getline(FILE *fp);
+char **tokenizer(char *str);
+char *_which(char *command, char *fullpath, char *path);
+int child(char *fullpath, char **tokens);
+void errors(int error);
+
+/* utility functions */
+void _puts(char *str);
+int _strlen(char *s);
+int _strcmp(char *name, char *variable, unsigned int length);
+int _strncmp(char *name, char *variable, unsigned int length);
+char *_strcpy(char *dest, char *src);
+
+/* prototypes for builtins */
+int shell_env(void);
+int shell_exit(void);
+int builtin_execute(char **tokens);
+int shell_num_builtins(built_s builtin[]);
+
+/* prototypes for the helper functions for path linked list */
+char *_getenv(const char *name);
+char **copy_env(char **environ_copy, unsigned int environ_length);
+list_s *pathlist(char *variable, list_s *head);
+
+/* prototypes for free functions */
+void free_all(char **tokens, char *path, char *line, char *fullpath, int flag);
+void free_dp(char **array, unsigned int length);
 
 #endif /* SHELL_H */
