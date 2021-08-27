@@ -27,7 +27,7 @@ if (compare == 1)
 {
 value = strtok(variable, "=");
 value = strtok(NULL, "\n ");
-if (value == '\0')
+if (*value == '\0')
 {
 errors(4);
 exit(EXIT_FAILURE);
