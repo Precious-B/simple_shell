@@ -12,6 +12,12 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <stdbool.h>
+#include <dirent.h>
+#include <signal.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+#include "./stringfile/string.h"
+#include "linklist.h"
 
 /*string_handlers*/
 char *_strdup(char *str);
